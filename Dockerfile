@@ -1,10 +1,13 @@
 FROM node:20-bookworm-slim
 
-# Install Chrome and dependencies
+# Install dependencies for Chrome
 RUN apt-get update && apt-get install -y \
     wget gnupg ca-certificates curl \
-    && wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - \
-    && sh -c 'echo "deb [url=http://dl.google.com/linux/chrome/deb/] stable main" >> /etc/apt/sources.list.d/google.list' \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Google Chrome properly
+RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | gpg --dearmor -o /usr/share/keyrings/google-chrome-keyring.gpg \
+    && echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-chrome-keyring.gpg] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list \
     && apt-get update \
     && apt-get install -y google-chrome-stable \
     && apt-get clean \
@@ -13,11 +16,12 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 
 COPY package.json .
-RUN npm install && npm install playwright
+RUN npm install
 
-# Install Playwright system deps and Chromium
-RUN npx playwright install-deps chromium
-RUN npx playwright install chromium
+# Install Playwright with Chromium
+RUN npm install playwright \
+    && npx playwright install-deps chromium \
+    && npx playwright install chromium
 
 COPY . .
 
